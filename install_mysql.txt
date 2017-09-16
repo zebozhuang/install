@@ -1,0 +1,147 @@
+虽然MySQL可以用命令行安装，但是会对一些细节和不可控性不了解,所以选择源码安装
+最新版本需要用boost库，所以要下载 mysql 和 boost, 下载链接如下:
+
+    http://dev.mysql.com/downloads/mysql/ 
+   
+    选择source code,下载最后两个安装包: mysql-5.7.14.tar.gz, mysql-boost-5.7.14.gz
+    http://cdn.mysql.com//Downloads/MySQL-5.7/mysql-boost-5.7.14.tar.gz
+    http://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.14.tar.gz
+
+1 安装MySQL
+
+1.1 下载
+
+    wget http://cdn.mysql.com//Downloads/MySQL-5.7/mysql-boost-5.7.14.tar.gz
+    wget http://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.14.tar.gz
+
+
+1.2 解压
+
+    先解压mysql-5.7.14.tar.gz, 然后再解压mysql-boost-5.7.14.tar.gz
+    这样能保证boost能解压到mysql-5.7.14/boost目录下
+
+    tar -xvf mysql-5.7.14.tar.gz
+    tar -xvf mysql-boost-5.7.14.tar.gz
+
+1.3 安装
+
+1.3.1 安装MySQL必须库
+
+    apt-get update
+    apt-get install bison openssl libncurses5-dev perl cmake
+
+1.3.2 编译安装
+
+    进入目录安装
+
+    cd mysql-5.7.14  
+
+    cmake . \
+    -DCMAKE_INSTALL_PREFIX=/usr/local/mysql \
+    -DMYSQL_DATADIR=/opt/data/mysql/data \
+    -DMYSQL_UNIX_ADDR=/tmp/mysql.sock \
+    -DDEFAULT_CHARSET=utf8 \
+    -DDEFAULT_COLLATION=utf8_general_ci \
+    -DWITH_EXTRA_CHARSETS=all \
+    -DWITH_MYISAM_STORAGE_ENGINE=1 \
+    -DWITH_INNOBASE_STORAGE_ENGINE=1 \
+    -DWITH_MEMORY_STORAGE_ENGINE=1 \
+    -DWITH_READLINE=1 \
+    -DENABLED_LOCAL_INFILE=1 \
+    -DMYSQL_USER=mysql \
+    -DWITH_BOOST=boost
+
+    make && make install 
+
+2.配置MySQL
+    
+    根据步骤1，MySQL安装在/usr/local/mysql目录下
+
+    cd /usr/local/mysql
+    ls 
+    可以查看mysql目录
+
+2.1 创建MySQL用户
+
+    groupadd mysql
+    useradd mysql -g mysql
+
+2.2 创建MySQL数据目录,用来存储MySQL数据
+
+    mkdir -p /data/mysql/data            # 存放MySQL数据库数据
+    mkdir -p /data/mysql/log             # 存放MySQL日志，查看日常操作log和异常
+    mkdir -p /data/mysql/bin-log         # 存放MySQL bin log日志，用来同步数据
+    chown -R mysql:mysql /data/mysql     # root用户将mysql目录归mysql用户所有
+
+2.3 配置MySQL
+    cd /usr/local/mysql
+    cp support-files/my-default.cnf /etc/my.cnf     # 将my-default.cnf文件复制到/etc目录下，并命名为my.cnf
+    vim /etc/my.cnf     # 打开my.cnf, 添加如下配置:
+
+[mysqld]
+character_set_server=utf8
+
+server_id = 1
+port = 3306
+
+innodb_buffer_pool_size = 128M
+basedir = /usr/local/mysql
+datadir = /opt/data/mysql/data
+socket = /tmp/mysql.sock
+pid-file = /opt/data/mysql/mysql.pid 
+
+log-bin = /opt/data/mysql/bin-log/mysql-bin 
+sync-binlog = 1 
+
+general_log = 1    
+log-error = /opt/data/mysql/log/mysql_err.log
+general_log_file = /opt/data/mysql/log/mysql.log
+
+[mysql]
+default-character-set=utf8
+
+
+2.4 初始化MySQL 
+
+    cd /usr/local/mysql
+    bin/mysqld  --defaults-file=/etc/my.cnf --user=mysql --initialize
+
+    打开/opt/data/mysql/log/mysql.log, 查找初始化密码
+
+    2016-07-05T08:31:20.363565Z 1 [Note] A temporary password is generated for root@localhost: 9arAj*:r047g
+
+   启动mysql
+   cp support-files/mysql.server /etc/init.d/mysqld
+   /etc/init.d/mysqld start
+
+    登陆 
+    bin/mysql -u root -p 9arAj*:r047g 
+
+    不修改密码不能操作
+    mysql> show databases;
+    ERROR 1820 (HY000): You must reset your password using ALTER USER statement before executing this statement.
+    
+    修改密码
+    mysql> SET PASSWORD = PASSWORD('123456');
+    mysql> ALTER USER 'root'@'localhost' PASSWORD EXPIRE NEVER;
+    mysql> flush privileges;
+
+2.5 配置MySQL执行路劲
+
+    vim /root/.bashrc    # 打开.bashrc文件，并记录一下内容
+
+    export PATH=$PATH:/usr/local/mysql/bin/
+
+    保存，退出
+
+    source /root/.bashrc
+
+    执行一下命令检验是否准确
+    
+    mysql -uroot -p123456
+     
+2.6 添加用户
+
+    CREATE USER 'seebering'@'172.19.197.26' IDENTIFIED BY 'E10adc3949ba59abbe56e057f20f883e';
+    GRANT ALL PRIVILEGES ON * . * TO 'seebering'@'172.19.197.26';
+    FLUSH PRIVILEGES;
