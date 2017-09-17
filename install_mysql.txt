@@ -142,6 +142,6 @@ default-character-set=utf8
      
 2.6 添加用户
 
-    CREATE USER 'seebering'@'172.19.197.26' IDENTIFIED BY 'E10adc3949ba59abbe56e057f20f883e';
-    GRANT ALL PRIVILEGES ON * . * TO 'seebering'@'172.19.197.26';
+    CREATE USER 'user1'@'172.19.197.26' IDENTIFIED BY '123123';
+    GRANT ALL PRIVILEGES ON * . * TO 'user1'@'172.19.197.26';
     FLUSH PRIVILEGES;
